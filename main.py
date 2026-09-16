@@ -26,7 +26,7 @@ Base.metadata.create_all(bind=engine)
 
 @app.get("/api/sessions")
 def list_sessions(db: DBSession = Depends(get_db)):
-    sessions = db.query(Session).all()
+    sessions = db.query(Session).order_by(Session.start_time.desc()).all()
     return sessions
 
 @app.post("/api/sessions/{session_id}/events")
@@ -71,3 +71,18 @@ def get_replay_events(session_id: str, db: DBSession = Depends(get_db)):
                 rrweb_events.append(item["event"])
 
     return rrweb_events
+
+@app.get("/api/sessions/{session_id}/raw")
+def get_raw_events(session_id: str, db: DBSession = Depends(get_db)):
+    raw_batches = (
+        db.query(SessionEvent)
+        .filter(SessionEvent.session_id == session_id)
+        .order_by(SessionEvent.id)
+        .all()
+    )
+
+    all_events = []
+    for batch in raw_batches:
+        all_events.extend(batch.event_blob)
+
+    return all_events
